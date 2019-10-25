@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2013-2018 the original author or authors.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.cloud.dubbo.http.matcher;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.MediaType;
+package com.alibaba.cloud.dubbo.http.matcher;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,8 +23,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.MediaType;
+
 /**
- * {@link HttpRequest} 'Accept' header {@link HttpRequestMatcher matcher}
+ * {@link HttpRequest} 'Accept' header {@link HttpRequestMatcher matcher}.
  *
  * @author Arjen Poutsma
  * @author Rossen Stoyanchev
@@ -36,84 +36,87 @@ import java.util.Set;
  */
 public class HttpRequestProducesMatcher extends AbstractHttpRequestMatcher {
 
-    private final List<ProduceMediaTypeExpression> expressions;
+	private final List<ProduceMediaTypeExpression> expressions;
 
-    /**
-     * Creates a new instance from "produces" expressions. If 0 expressions
-     * are provided in total, this condition will match to any request.
-     *
-     * @param produces produces expressions
-     */
-    public HttpRequestProducesMatcher(String... produces) {
-        this(produces, null);
-    }
+	/**
+	 * Creates a new instance from "produces" expressions. If 0 expressions are provided
+	 * in total, this condition will match to any request.
+	 * @param produces produces expressions
+	 */
+	public HttpRequestProducesMatcher(String... produces) {
+		this(produces, null);
+	}
 
-    /**
-     * Creates a new instance with "produces" and "header" expressions. "Header"
-     * expressions where the header name is not 'Accept' or have no header value
-     * defined are ignored. If 0 expressions are provided in total, this condition
-     * will match to any request.
-     *
-     * @param produces produces expressions
-     * @param headers  headers expressions
-     */
-    public HttpRequestProducesMatcher(String[] produces, String[] headers) {
-        this(parseExpressions(produces, headers));
-    }
+	/**
+	 * Creates a new instance with "produces" and "header" expressions. "Header"
+	 * expressions where the header name is not 'Accept' or have no header value defined
+	 * are ignored. If 0 expressions are provided in total, this condition will match to
+	 * any request.
+	 * @param produces produces expressions
+	 * @param headers headers expressions
+	 */
+	public HttpRequestProducesMatcher(String[] produces, String[] headers) {
+		this(parseExpressions(produces, headers));
+	}
 
-    /**
-     * Private constructor accepting parsed media type expressions.
-     */
-    private HttpRequestProducesMatcher(Collection<ProduceMediaTypeExpression> expressions) {
-        this.expressions = new ArrayList<>(expressions);
-        Collections.sort(this.expressions);
-    }
+	/**
+	 * Private constructor accepting parsed media type expressions.
+	 */
+	private HttpRequestProducesMatcher(
+			Collection<ProduceMediaTypeExpression> expressions) {
+		this.expressions = new ArrayList<>(expressions);
+		Collections.sort(this.expressions);
+	}
 
-    @Override
-    public boolean match(HttpRequest request) {
+	private static Set<ProduceMediaTypeExpression> parseExpressions(String[] produces,
+			String[] headers) {
+		Set<ProduceMediaTypeExpression> result = new LinkedHashSet<>();
+		if (headers != null) {
+			for (String header : headers) {
+				HeaderExpression expr = new HeaderExpression(header);
+				if (HttpHeaders.ACCEPT.equalsIgnoreCase(expr.name)
+						&& expr.value != null) {
+					for (MediaType mediaType : MediaType.parseMediaTypes(expr.value)) {
+						result.add(
+								new ProduceMediaTypeExpression(mediaType, expr.negated));
+					}
+				}
+			}
+		}
+		for (String produce : produces) {
+			result.add(new ProduceMediaTypeExpression(produce));
+		}
+		return result;
+	}
 
-        if (expressions.isEmpty()) {
-            return true;
-        }
+	@Override
+	public boolean match(HttpRequest request) {
 
-        HttpHeaders httpHeaders = request.getHeaders();
+		if (expressions.isEmpty()) {
+			return true;
+		}
 
-        List<MediaType> acceptedMediaTypes = httpHeaders.getAccept();
+		HttpHeaders httpHeaders = request.getHeaders();
 
-        for (ProduceMediaTypeExpression expression : expressions) {
-            if (!expression.match(acceptedMediaTypes)) {
-                return false;
-            }
-        }
+		List<MediaType> acceptedMediaTypes = httpHeaders.getAccept();
 
-        return true;
-    }
+		for (ProduceMediaTypeExpression expression : expressions) {
+			if (!expression.match(acceptedMediaTypes)) {
+				return false;
+			}
+		}
 
-    private static Set<ProduceMediaTypeExpression> parseExpressions(String[] produces, String[] headers) {
-        Set<ProduceMediaTypeExpression> result = new LinkedHashSet<>();
-        if (headers != null) {
-            for (String header : headers) {
-                HeaderExpression expr = new HeaderExpression(header);
-                if (HttpHeaders.ACCEPT.equalsIgnoreCase(expr.name) && expr.value != null) {
-                    for (MediaType mediaType : MediaType.parseMediaTypes(expr.value)) {
-                        result.add(new ProduceMediaTypeExpression(mediaType, expr.negated));
-                    }
-                }
-            }
-        }
-        for (String produce : produces) {
-            result.add(new ProduceMediaTypeExpression(produce));
-        }
-        return result;
-    }
+		return true;
+	}
 
-    @Override
-    protected Collection<ProduceMediaTypeExpression> getContent() {
-        return expressions;
-    }
+	@Override
+	protected Collection<ProduceMediaTypeExpression> getContent() {
+		return expressions;
+	}
 
-    @Override
-    protected String getToStringInfix() {
-        return " || ";
-    }
+	@Override
+	protected String getToStringInfix() {
+		return " || ";
+	}
+
 }

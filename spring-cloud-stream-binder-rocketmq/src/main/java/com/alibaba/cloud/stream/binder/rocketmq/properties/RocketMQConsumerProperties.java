@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2018 the original author or authors.
+ * Copyright 2013-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,9 @@
 
 package com.alibaba.cloud.stream.binder.rocketmq.properties;
 
+import java.util.Set;
+
+import com.alibaba.cloud.stream.binder.rocketmq.support.JacksonRocketMQHeaderMapper;
 import org.apache.rocketmq.client.consumer.MQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -30,40 +33,45 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 public class RocketMQConsumerProperties {
 
 	/**
-	 * using '||' to split tag {@link MQPushConsumer#subscribe(String, String)}
+	 * using '||' to split tag {@link MQPushConsumer#subscribe(String, String)}.
 	 */
 	private String tags;
 
 	/**
 	 * {@link MQPushConsumer#subscribe(String, MessageSelector)}
-	 * {@link MessageSelector#bySql(String)}
+	 * {@link MessageSelector#bySql(String)}.
 	 */
 	private String sql;
 
 	/**
-	 * {@link MessageModel#BROADCASTING}
+	 * {@link MessageModel#BROADCASTING}.
 	 */
 	private Boolean broadcasting = false;
 
 	/**
 	 * if orderly is true, using {@link MessageListenerOrderly} else if orderly if false,
-	 * using {@link MessageListenerConcurrently}
+	 * using {@link MessageListenerConcurrently}.
 	 */
 	private Boolean orderly = false;
 
 	/**
 	 * for concurrently listener. message consume retry strategy. see
 	 * {@link ConsumeConcurrentlyContext#delayLevelWhenNextConsume}. -1 means dlq(or
-	 * discard, see {@link this#shouldRequeue}), others means requeue
+	 * discard, see {@link this#shouldRequeue}), others means requeue.
 	 */
 	private int delayLevelWhenNextConsume = 0;
 
 	/**
-	 * for orderly listener. next retry delay time
+	 * for orderly listener. next retry delay time.
 	 */
 	private long suspendCurrentQueueTimeMillis = 1000;
 
 	private Boolean enabled = true;
+
+	/**
+	 * {@link JacksonRocketMQHeaderMapper#addTrustedPackages(String...)}.
+	 */
+	private Set<String> trustedPackages;
 
 	// ------------ For Pull Consumer ------------
 
@@ -148,4 +156,13 @@ public class RocketMQConsumerProperties {
 	public boolean shouldRequeue() {
 		return delayLevelWhenNextConsume != -1;
 	}
+
+	public Set<String> getTrustedPackages() {
+		return trustedPackages;
+	}
+
+	public void setTrustedPackages(Set<String> trustedPackages) {
+		this.trustedPackages = trustedPackages;
+	}
+
 }

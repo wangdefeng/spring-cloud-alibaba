@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2013-2018 the original author or authors.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,74 +13,80 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.alibaba.cloud.dubbo.openfeign;
-
-import org.apache.dubbo.rpc.service.GenericService;
-
-import com.alibaba.cloud.dubbo.metadata.RestMethodMetadata;
-import com.alibaba.cloud.dubbo.service.DubboGenericServiceExecutionContext;
-import com.alibaba.cloud.dubbo.service.DubboGenericServiceExecutionContextFactory;
-import org.springframework.util.ClassUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
 
+import com.alibaba.cloud.dubbo.metadata.RestMethodMetadata;
+import com.alibaba.cloud.dubbo.service.DubboGenericServiceExecutionContext;
+import com.alibaba.cloud.dubbo.service.DubboGenericServiceExecutionContextFactory;
+import org.apache.dubbo.rpc.service.GenericService;
+
+import org.springframework.util.ClassUtils;
+
 import static org.apache.dubbo.common.utils.PojoUtils.realize;
 
 /**
- * Dubbo {@link GenericService} for {@link InvocationHandler}
+ * Dubbo {@link GenericService} for {@link InvocationHandler}.
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  */
 public class DubboInvocationHandler implements InvocationHandler {
 
-    private final Map<Method, FeignMethodMetadata> feignMethodMetadataMap;
+	private final Map<Method, FeignMethodMetadata> feignMethodMetadataMap;
 
-    private final InvocationHandler defaultInvocationHandler;
+	private final InvocationHandler defaultInvocationHandler;
 
-    private final DubboGenericServiceExecutionContextFactory contextFactory;
+	private final DubboGenericServiceExecutionContextFactory contextFactory;
 
-    private final ClassLoader classLoader;
+	private final ClassLoader classLoader;
 
-    public DubboInvocationHandler(Map<Method, FeignMethodMetadata> feignMethodMetadataMap,
-                                  InvocationHandler defaultInvocationHandler,
-                                  ClassLoader classLoader,
-                                  DubboGenericServiceExecutionContextFactory contextFactory) {
-        this.feignMethodMetadataMap = feignMethodMetadataMap;
-        this.defaultInvocationHandler = defaultInvocationHandler;
-        this.classLoader = classLoader;
-        this.contextFactory = contextFactory;
-    }
+	public DubboInvocationHandler(Map<Method, FeignMethodMetadata> feignMethodMetadataMap,
+			InvocationHandler defaultInvocationHandler, ClassLoader classLoader,
+			DubboGenericServiceExecutionContextFactory contextFactory) {
+		this.feignMethodMetadataMap = feignMethodMetadataMap;
+		this.defaultInvocationHandler = defaultInvocationHandler;
+		this.classLoader = classLoader;
+		this.contextFactory = contextFactory;
+	}
 
-    @Override
-    public Object invoke(Object proxy, Method feignMethod, Object[] args) throws Throwable {
+	@Override
+	public Object invoke(Object proxy, Method feignMethod, Object[] args)
+			throws Throwable {
 
-        FeignMethodMetadata feignMethodMetadata = feignMethodMetadataMap.get(feignMethod);
+		FeignMethodMetadata feignMethodMetadata = feignMethodMetadataMap.get(feignMethod);
 
-        if (feignMethodMetadata == null) {
-            return defaultInvocationHandler.invoke(proxy, feignMethod, args);
-        }
+		if (feignMethodMetadata == null) {
+			return defaultInvocationHandler.invoke(proxy, feignMethod, args);
+		}
 
-        GenericService dubboGenericService = feignMethodMetadata.getDubboGenericService();
-        RestMethodMetadata dubboRestMethodMetadata = feignMethodMetadata.getDubboRestMethodMetadata();
-        RestMethodMetadata feignRestMethodMetadata = feignMethodMetadata.getFeignMethodMetadata();
+		GenericService dubboGenericService = feignMethodMetadata.getDubboGenericService();
+		RestMethodMetadata dubboRestMethodMetadata = feignMethodMetadata
+				.getDubboRestMethodMetadata();
+		RestMethodMetadata feignRestMethodMetadata = feignMethodMetadata
+				.getFeignMethodMetadata();
 
-        DubboGenericServiceExecutionContext context = contextFactory.create(dubboRestMethodMetadata, feignRestMethodMetadata, args);
+		DubboGenericServiceExecutionContext context = contextFactory
+				.create(dubboRestMethodMetadata, feignRestMethodMetadata, args);
 
-        String methodName = context.getMethodName();
-        String[] parameterTypes = context.getParameterTypes();
-        Object[] parameters = context.getParameters();
+		String methodName = context.getMethodName();
+		String[] parameterTypes = context.getParameterTypes();
+		Object[] parameters = context.getParameters();
 
-        Object result = dubboGenericService.$invoke(methodName, parameterTypes, parameters);
+		Object result = dubboGenericService.$invoke(methodName, parameterTypes,
+				parameters);
 
-        Class<?> returnType = getReturnType(dubboRestMethodMetadata);
+		Class<?> returnType = getReturnType(dubboRestMethodMetadata);
 
-        return realize(result, returnType);
-    }
+		return realize(result, returnType);
+	}
 
-    private Class<?> getReturnType(RestMethodMetadata dubboRestMethodMetadata) {
-        String returnType = dubboRestMethodMetadata.getReturnType();
-        return ClassUtils.resolveClassName(returnType, classLoader);
-    }
+	private Class<?> getReturnType(RestMethodMetadata dubboRestMethodMetadata) {
+		String returnType = dubboRestMethodMetadata.getReturnType();
+		return ClassUtils.resolveClassName(returnType, classLoader);
+	}
+
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2018 the original author or authors.
+ * Copyright 2013-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosNamingManager;
 import com.alibaba.nacos.api.naming.pojo.Instance;
-
+import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AbstractServerList;
 
@@ -31,11 +32,15 @@ import com.netflix.loadbalancer.AbstractServerList;
  */
 public class NacosServerList extends AbstractServerList<NacosServer> {
 
+	private NacosNamingManager nacosNamingManager;
+
 	private NacosDiscoveryProperties discoveryProperties;
 
 	private String serviceId;
 
-	public NacosServerList(NacosDiscoveryProperties discoveryProperties) {
+	public NacosServerList(NacosNamingManager nacosNamingManager,
+			NacosDiscoveryProperties discoveryProperties) {
+		this.nacosNamingManager = nacosNamingManager;
 		this.discoveryProperties = discoveryProperties;
 	}
 
@@ -51,8 +56,9 @@ public class NacosServerList extends AbstractServerList<NacosServer> {
 
 	private List<NacosServer> getServers() {
 		try {
-			List<Instance> instances = discoveryProperties.namingServiceInstance()
-					.selectInstances(serviceId, true);
+			String group = discoveryProperties.getGroup();
+			List<Instance> instances = nacosNamingManager.getNamingService()
+					.selectInstances(serviceId, group, true);
 			return instancesToServerList(instances);
 		}
 		catch (Exception e) {
@@ -64,7 +70,7 @@ public class NacosServerList extends AbstractServerList<NacosServer> {
 
 	private List<NacosServer> instancesToServerList(List<Instance> instances) {
 		List<NacosServer> result = new ArrayList<>();
-		if (null == instances) {
+		if (CollectionUtils.isEmpty(instances)) {
 			return result;
 		}
 		for (Instance instance : instances) {
@@ -82,4 +88,5 @@ public class NacosServerList extends AbstractServerList<NacosServer> {
 	public void initWithNiwsConfig(IClientConfig iClientConfig) {
 		this.serviceId = iClientConfig.getClientName();
 	}
+
 }
